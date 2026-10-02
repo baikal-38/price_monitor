@@ -5,12 +5,28 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from bs4 import BeautifulSoup
 import aiohttp
+from aiohttp import web
+
+async def handle(request):
+    return web.Response(text="Bot is running!")
+
+async def start_web_server():
+    port = int(os.environ.get("PORT", 8080))
+    app = web.Application()
+    app.router.add_get("/", handle)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, '0.0.0.0', port)
+    await site.start()
+    logging.info(f"Веб-сервер запущен на порту {port}")
+
+
 
 # --- НАСТРОЙКИ ---
 BOT_TOKEN = os.getenv("BOT_TOKEN", "ВСТАВЬТЕ_СЮДА_ТОКЕН_БОТА")
 # Товар, за которым следим (ссылка из вашего запроса)
 PRODUCT_URL = "https://market.yandex.ru/card/maslo-motornoye-lukoil-genesis-armortech-jp-0w-30-4-l/102207184982"
-CHECK_INTERVAL = 3600  # Проверять каждый час (в секундах)
+CHECK_INTERVAL = 600  # Проверять каждые 10 минут (в секундах)
 # Порог, при котором отправлять уведомление (в рублях)
 TARGET_PRICE = 3000 
 
@@ -95,10 +111,13 @@ async def cmd_start(message: types.Message):
     )
 
 async def main():
+    # Запускаем веб-сервер для keep-alive
+    await start_web_server()
     # Запускаем фоновый мониторинг
     asyncio.create_task(monitor_prices())
     # Запускаем бота
     await dp.start_polling(bot)
+    
 
 if __name__ == "__main__":
     asyncio.run(main())
